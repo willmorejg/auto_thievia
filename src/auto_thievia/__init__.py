@@ -10,6 +10,7 @@ __version__ = "0.1.0"
 from .gis_mapper import GISMapper
 from .theft_data import TheftData, TheftDataPersistence
 from .suspect_data import SuspectData, SuspectDataPersistence
+from .recovery_data import RecoveryData, RecoveryDataPersistence
 from .duckdb_persistence import DuckDbPersistence
 
 __all__ = [
@@ -18,5 +19,7 @@ __all__ = [
     "TheftDataPersistence",
     "SuspectData",
     "SuspectDataPersistence",
+    "RecoveryData",
+    "RecoveryDataPersistence",
     "DuckDbPersistence",
 ]

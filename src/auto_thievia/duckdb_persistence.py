@@ -131,7 +131,18 @@ class DuckDbPersistence:
                 for col in required_columns:
                     if col not in df.columns:
                         # Set appropriate default values based on column patterns
-                        if "date" in col.lower() or "time" in col.lower():
+                        # Check boolean patterns first
+                        if any(
+                            x in col.lower()
+                            for x in [
+                                "notified",
+                                "collected",
+                                "criminal_location",
+                                "evidence",
+                            ]
+                        ) or col.lower().startswith("is_"):
+                            df[col] = False
+                        elif "date" in col.lower() or "time" in col.lower():
                             df[col] = pd.Timestamp.now()
                         elif "id" in col.lower():
                             # Generate unique IDs
