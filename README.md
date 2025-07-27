@@ -89,7 +89,110 @@ fig, ax = mapper.plot_static_map(
 )
 ```
 
-## 📁 Project Structure
+## � Data Management
+
+Auto Thievia provides specialized classes for managing different types of crime data:
+
+### TheftData - Auto Theft Incident Management
+
+The `TheftData` class handles auto theft incident data with comprehensive CSV import/export and database persistence.
+
+```python
+from auto_thievia import TheftData, TheftDataPersistence
+
+# Initialize theft data manager
+theft_manager = TheftData()
+
+# Create sample data or import from CSV
+theft_data = theft_manager.import_from_csv("theft_incidents.csv")
+
+# Database persistence with DuckDB
+db_manager = TheftDataPersistence("theft_database.db")
+db_manager.save_theft_data(theft_data, "incidents")
+
+# Query by location
+nearby_thefts = db_manager.query_by_distance(40.7357, -74.1724, radius_km=2.0)
+```
+
+### SuspectData - Suspect Information Management
+
+The `SuspectData` class manages suspect information including personal details, addresses, and arrest history.
+
+```python
+from auto_thievia import SuspectData, SuspectDataPersistence
+
+# Initialize suspect data manager
+suspect_manager = SuspectData()
+
+# Import suspect data from CSV
+suspect_data = suspect_manager.import_from_csv("suspect_database.csv")
+
+# Analyze suspect patterns
+high_risk = suspect_manager.get_high_risk_suspects()
+repeat_offenders = suspect_manager.get_repeat_offenders()
+
+# Geographic analysis
+nearby_suspects = suspect_manager.get_suspects_by_distance(
+    center_lat=40.7357, 
+    center_lon=-74.1724, 
+    radius_km=1.0,
+    location_type='address'  # or 'arrest'
+)
+
+# Create arrest location visualization
+arrest_points = suspect_manager.create_arrest_points_gdf()
+
+# Database persistence with DuckDB
+with SuspectDataPersistence("suspect_database.db") as db:
+    # Save data to database
+    db.save_suspect_data(suspect_data)
+    
+    # Query suspects by various criteria
+    high_risk_db = db.query_suspects_by_criteria(risk_levels=['High', 'Critical'])
+    young_males = db.query_suspects_by_criteria(min_age=18, max_age=30, gender='Male')
+    
+    # Geographic queries
+    nearby_addresses = db.query_suspects_by_address_distance(40.7357, -74.1724, 2.0)
+    nearby_arrests = db.query_suspects_by_arrest_distance(40.7357, -74.1724, 2.0)
+    
+    # Get database statistics
+    stats = db.get_suspect_statistics()
+```
+
+### Shared DuckDB Persistence
+
+The `DuckDbPersistence` class provides a generic database layer that can be used by any data type:
+
+```python
+from auto_thievia import DuckDbPersistence
+
+# Create a generic database manager
+with DuckDbPersistence("shared_database.db") as db:
+    # Create custom tables
+    schema = {"id": "VARCHAR PRIMARY KEY", "name": "VARCHAR", "value": "DOUBLE"}
+    db.create_table("custom_data", schema)
+    
+    # Execute custom queries
+    results = db.execute_query("SELECT COUNT(*) FROM custom_data")
+    
+    # Get table information
+    table_info = db.get_table_info("custom_data")
+```
+
+### Required CSV Columns
+
+**TheftData CSV Requirements:**
+- `theft_lat`, `theft_lon` - Theft location coordinates
+- `make`, `model`, `year` - Vehicle information
+- `theft_date` - When the theft occurred
+
+**SuspectData CSV Requirements:**
+- `suspect_name`, `suspect_address` - Personal information
+- `address_lat`, `address_lon` - Suspect address coordinates
+- `last_arrest_date`, `arrest_location` - Arrest information
+- `arrest_lat`, `arrest_lon` - Arrest location coordinates
+
+## �📁 Project Structure
 
 ```
 auto_thievia/
