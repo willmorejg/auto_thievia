@@ -15,11 +15,10 @@ import pandas as pd
 import pytest
 
 from auto_thievia.theft_data import (
-    DB_CONNECTION_ERROR,
-    MEMORY_DB,
     TheftData,
     TheftDataPersistence,
 )
+from auto_thievia.duckdb_persistence import MEMORY_DB, DB_CONNECTION_ERROR
 
 
 class TestTheftData:
@@ -266,8 +265,8 @@ class TestTheftDataPersistence:
     def test_init_memory_db(self):
         """Test initialization with in-memory database."""
         with TheftDataPersistence() as db:
-            assert db.db_path == MEMORY_DB
-            assert db.connection is not None
+            assert db.db_persistence.db_path == MEMORY_DB
+            assert db.db_persistence.connection is not None
 
     def test_init_file_db(self):
         """Test initialization with file database."""
@@ -276,8 +275,8 @@ class TestTheftDataPersistence:
             db_path = Path(temp_dir) / "test.db"
 
             with TheftDataPersistence(db_path) as db:
-                assert db.db_path == str(db_path)
-                assert db.connection is not None
+                assert db.db_persistence.db_path == str(db_path)
+                assert db.db_persistence.connection is not None
 
     def test_save_and_load_theft_data(self):
         """Test saving and loading theft data."""
@@ -307,7 +306,7 @@ class TestTheftDataPersistence:
     def test_save_data_no_connection(self):
         """Test saving data with no database connection."""
         db = TheftDataPersistence()
-        db.connection = None
+        db.db_persistence.connection = None
 
         td = TheftData()
         sample_data = td.create_sample_data(num_records=5)
@@ -318,7 +317,7 @@ class TestTheftDataPersistence:
     def test_load_data_no_connection(self):
         """Test loading data with no database connection."""
         db = TheftDataPersistence()
-        db.connection = None
+        db.db_persistence.connection = None
 
         with pytest.raises(ValueError, match=DB_CONNECTION_ERROR):
             db.load_theft_data()
@@ -354,7 +353,7 @@ class TestTheftDataPersistence:
     def test_query_by_distance_no_connection(self):
         """Test distance query with no database connection."""
         db = TheftDataPersistence()
-        db.connection = None
+        db.db_persistence.connection = None
 
         with pytest.raises(ValueError, match=DB_CONNECTION_ERROR):
             db.query_by_distance(40.7282, -74.2090, 5.0)
@@ -378,12 +377,12 @@ class TestTheftDataPersistence:
     def test_get_statistics_no_connection(self):
         """Test getting statistics with no database connection."""
         db = TheftDataPersistence()
-        db.connection = None
+        db.db_persistence.connection = None
 
         with pytest.raises(ValueError, match=DB_CONNECTION_ERROR):
             db.get_statistics()
 
-    @patch("duckdb.connect")
+    @patch("auto_thievia.duckdb_persistence.duckdb.connect")
     def test_database_setup_failure(self, mock_connect):
         """Test database setup failure handling."""
         mock_connect.side_effect = Exception("Connection failed")
@@ -397,13 +396,13 @@ class TestTheftDataPersistence:
         sample_data = td.create_sample_data(num_records=10)
 
         with TheftDataPersistence() as db:
-            assert db.connection is not None
+            assert db.db_persistence.connection is not None
             db.save_theft_data(sample_data)
             loaded_data = db.load_theft_data()
             assert len(loaded_data) == 10
 
         # Connection should be closed after context
-        assert db.connection is None
+        assert db.db_persistence.connection is None
 
     def test_bbox_fallback_query(self):
         """Test fallback bounding box query."""
@@ -413,9 +412,9 @@ class TestTheftDataPersistence:
         with TheftDataPersistence() as db:
             db.save_theft_data(sample_data)
 
-            # Test the fallback method directly
+            # Test the query_by_distance method (which uses bounding box internally)
             center_lat, center_lon = 40.7282, -74.2090
-            nearby = db._query_by_bbox(center_lat, center_lon, 2.0, "theft_incidents")
+            nearby = db.query_by_distance(center_lat, center_lon, 2.0)
 
             assert isinstance(nearby, gpd.GeoDataFrame)
             assert len(nearby) <= len(sample_data)

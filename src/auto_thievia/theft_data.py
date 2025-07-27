@@ -10,16 +10,12 @@ import warnings
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-import duckdb
 import geopandas as gpd
 import pandas as pd
 from shapely.geometry import Point
 
+from .duckdb_persistence import DuckDbPersistence
 from .gis_mapper import WGS84_CRS
-
-# Constants
-MEMORY_DB = ":memory:"
-DB_CONNECTION_ERROR = "Database connection not established"
 
 
 class TheftData:
@@ -412,241 +408,129 @@ class TheftData:
 
 class TheftDataPersistence:
     """
-    A class for persisting theft data to DuckDB databases.
+    A class for persisting theft data to DuckDB databases using the shared DuckDbPersistence layer.
 
-    This class handles creating DuckDB databases, storing geopandas dataframes,
-    and querying theft data with spatial capabilities.
+    This class provides theft-specific database operations while leveraging
+    the common database functionality from DuckDbPersistence.
     """
 
-    def __init__(self, db_path: Union[str, Path] = MEMORY_DB):
+    def __init__(self, db_path: Union[str, Path] = ":memory:"):
         """
         Initialize the persistence manager.
 
         Args:
             db_path (Union[str, Path]): Path to DuckDB database file.
-                                       Use MEMORY_DB for in-memory database.
+                                       Use ":memory:" for in-memory database.
         """
-        self.db_path = str(db_path) if db_path != MEMORY_DB else MEMORY_DB
-        self.connection: Optional[duckdb.DuckDBPyConnection] = None
-        self._setup_database()
+        self.db_persistence = DuckDbPersistence(db_path)
+        self.table_name = "theft_incidents"
+        self._setup_table()
 
-    def _setup_database(self):
-        """Set up the DuckDB database with spatial extensions."""
-        try:
-            self.connection = duckdb.connect(self.db_path)
+    def _setup_table(self):
+        """Set up the theft incidents table."""
+        # Define table schema for theft incidents
+        schema = {
+            "incident_id": "VARCHAR PRIMARY KEY",
+            "incident_date": "TIMESTAMP",
+            "incident_lat": "DOUBLE",
+            "incident_lon": "DOUBLE",
+            "vehicle_make": "VARCHAR",
+            "vehicle_model": "VARCHAR",
+            "vehicle_year": "INTEGER",
+            "vehicle_type": "VARCHAR",
+            "vehicle_value": "DOUBLE",
+            "vehicle_color": "VARCHAR",
+            "vehicle_vin": "VARCHAR",
+            "owner_name": "VARCHAR",
+            "owner_address": "VARCHAR",
+            "owner_lat": "DOUBLE",
+            "owner_lon": "DOUBLE",
+            "owner_income": "DOUBLE",
+            "owner_phone": "VARCHAR",
+            "owner_email": "VARCHAR",
+            "recovery_status": "VARCHAR",
+            "insurance_claim": "DOUBLE",
+            "police_report_id": "VARCHAR",
+            "theft_method": "VARCHAR",
+            "location_type": "VARCHAR",
+            "geometry_wkt": "TEXT",
+            "owner_lat_owner_lon_geometry": "TEXT",
+        }
 
-            # Install and load spatial extension
-            self.connection.execute("INSTALL spatial;")
-            self.connection.execute("LOAD spatial;")
+        self.db_persistence.create_table(self.table_name, schema)
 
-            # Create tables if they don't exist
-            self._create_tables()
-
-        except Exception as e:
-            raise ValueError(f"Error setting up DuckDB database: {str(e)}")
-
-    def _create_tables(self):
-        """Create the theft data tables."""
-        # Main theft incidents table
-        theft_table_sql = """
-        CREATE TABLE IF NOT EXISTS theft_incidents (
-            incident_id VARCHAR PRIMARY KEY,
-            incident_date TIMESTAMP,
-            incident_lat DOUBLE,
-            incident_lon DOUBLE,
-            incident_geometry TEXT,
-            vehicle_make VARCHAR,
-            vehicle_model VARCHAR,
-            vehicle_year INTEGER,
-            vehicle_type VARCHAR,
-            vehicle_value DOUBLE,
-            vehicle_color VARCHAR,
-            vehicle_vin VARCHAR,
-            owner_name VARCHAR,
-            owner_address VARCHAR,
-            owner_lat DOUBLE,
-            owner_lon DOUBLE,
-            owner_geometry TEXT,
-            owner_income DOUBLE,
-            owner_phone VARCHAR,
-            owner_email VARCHAR,
-            recovery_status VARCHAR,
-            insurance_claim DOUBLE,
-            police_report_id VARCHAR,
-            theft_method VARCHAR,
-            location_type VARCHAR,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-        """
-
-        self.connection.execute(theft_table_sql)
-
-        # Note: Spatial indices not supported with TEXT geometry storage
-
-    def save_theft_data(
-        self, gdf: gpd.GeoDataFrame, table_name: str = "theft_incidents"
-    ):
+    def save_theft_data(self, gdf: gpd.GeoDataFrame, table_name: Optional[str] = None):
         """
         Save theft data to the database.
 
         Args:
             gdf (gpd.GeoDataFrame): GeoDataFrame containing theft data.
-            table_name (str): Name of the table to save to.
+            table_name (Optional[str]): Name of the table to save to.
         """
-        if self.connection is None:
-            raise ValueError(DB_CONNECTION_ERROR)
+        table_name = table_name or self.table_name
 
-        try:
-            # Prepare data for insertion
-            df = gdf.copy()
+        # Define required columns for theft data
+        required_columns = [
+            "incident_id",
+            "incident_date",
+            "incident_lat",
+            "incident_lon",
+            "vehicle_make",
+            "vehicle_model",
+            "vehicle_year",
+            "vehicle_type",
+            "vehicle_value",
+            "vehicle_color",
+            "vehicle_vin",
+            "owner_name",
+            "owner_address",
+            "owner_lat",
+            "owner_lon",
+            "owner_income",
+            "owner_phone",
+            "owner_email",
+            "recovery_status",
+            "insurance_claim",
+            "police_report_id",
+            "theft_method",
+            "location_type",
+        ]
 
-            # Convert geometry to WKT for storage
-            df["incident_geometry"] = df.geometry.to_wkt()
+        # Use shared persistence layer
+        self.db_persistence.save_data(
+            gdf=gdf,
+            table_name=table_name,
+            geometry_column="geometry",
+            primary_geometry_columns=["incident_lat", "incident_lon"],
+            secondary_geometry_columns=["owner_lat", "owner_lon"],
+            required_columns=required_columns,
+            clear_existing=True,
+        )
 
-            # Create owner geometry points if coordinates exist
-            if "owner_lat" in df.columns and "owner_lon" in df.columns:
-                owner_geometry = [
-                    Point(lon, lat).wkt
-                    for lon, lat in zip(df["owner_lon"], df["owner_lat"])
-                ]
-                df["owner_geometry"] = owner_geometry
-            else:
-                df["owner_geometry"] = None
-
-            # Ensure all required columns exist with default values
-            required_columns = [
-                "incident_id",
-                "incident_date",
-                "incident_lat",
-                "incident_lon",
-                "incident_geometry",
-                "vehicle_make",
-                "vehicle_model",
-                "vehicle_year",
-                "vehicle_type",
-                "vehicle_value",
-                "vehicle_color",
-                "vehicle_vin",
-                "owner_name",
-                "owner_address",
-                "owner_lat",
-                "owner_lon",
-                "owner_geometry",
-                "owner_income",
-                "owner_phone",
-                "owner_email",
-                "recovery_status",
-                "insurance_claim",
-                "police_report_id",
-                "theft_method",
-                "location_type",
-            ]
-
-            # Add missing columns with default values
-            for col in required_columns:
-                if col not in df.columns:
-                    if col in ["incident_date"]:
-                        df[col] = pd.Timestamp.now()
-                    elif col in ["incident_id"]:
-                        # Generate unique incident IDs
-                        df[col] = [f"AUTO_{i+1:06d}" for i in range(len(df))]
-                    elif col in [
-                        "vehicle_year",
-                        "vehicle_value",
-                        "owner_income",
-                        "insurance_claim",
-                    ]:
-                        df[col] = 0
-                    elif col in [
-                        "incident_lat",
-                        "incident_lon",
-                        "owner_lat",
-                        "owner_lon",
-                    ]:
-                        df[col] = 0.0
-                    else:
-                        df[col] = None
-
-            # Reorder columns to match table schema (excluding created_at which has DEFAULT)
-            df = df[required_columns]
-
-            # Drop the original geometry column if it still exists
-            if "geometry" in df.columns:
-                df = df.drop("geometry", axis=1)
-
-            # Clear existing data and insert new data
-            self.connection.execute(f"DELETE FROM {table_name}")
-            self.connection.register("temp_df", df)
-
-            # Insert all records with explicit column specification
-            insert_sql = f"""
-            INSERT INTO {table_name} ({', '.join(required_columns)})
-            SELECT {', '.join(required_columns)} FROM temp_df
-            """
-            self.connection.execute(insert_sql)
-
-            print(f"Successfully saved {len(df)} theft records to {table_name}")
-
-        except Exception as e:
-            raise ValueError(f"Error saving data to database: {str(e)}") from e
-
-    def load_theft_data(self, table_name: str = "theft_incidents") -> gpd.GeoDataFrame:
+    def load_theft_data(self, table_name: Optional[str] = None) -> gpd.GeoDataFrame:
         """
         Load theft data from the database.
 
         Args:
-            table_name (str): Name of the table to load from.
+            table_name (Optional[str]): Name of the table to load from.
 
         Returns:
             gpd.GeoDataFrame: Loaded theft data.
         """
-        if self.connection is None:
-            raise ValueError(DB_CONNECTION_ERROR)
+        table_name = table_name or self.table_name
 
-        try:
-            # Query all data
-            df = self.connection.execute(f"SELECT * FROM {table_name}").df()
-
-            if len(df) == 0:
-                warnings.warn(f"No data found in table {table_name}")
-                return gpd.GeoDataFrame()
-
-            # Convert WKT back to geometry
-            from shapely import wkt
-
-            # Create geometry from WKT strings
-            geometries = []
-            for wkt_str in df["incident_geometry"]:
-                try:
-                    if wkt_str and str(wkt_str) not in ["None", "nan", "null"]:
-                        geometries.append(wkt.loads(str(wkt_str)))
-                    else:
-                        geometries.append(None)
-                except Exception:
-                    geometries.append(None)
-
-            df["geometry"] = geometries
-
-            # Create GeoDataFrame
-            gdf = gpd.GeoDataFrame(df, geometry="geometry", crs=WGS84_CRS)
-
-            # Drop the WKT columns
-            columns_to_drop = ["incident_geometry", "owner_geometry"]
-            gdf = gdf.drop(
-                columns=[col for col in columns_to_drop if col in gdf.columns]
-            )
-
-            return gdf
-
-        except Exception as e:
-            raise ValueError(f"Error loading data from database: {str(e)}")
+        return self.db_persistence.load_data(
+            table_name=table_name,
+            geometry_column="geometry",
+            geometry_wkt_column="geometry_wkt",
+        )
 
     def query_by_distance(
         self,
         center_lat: float,
         center_lon: float,
         radius_km: float,
-        table_name: str = "theft_incidents",
+        table_name: Optional[str] = None,
     ) -> gpd.GeoDataFrame:
         """
         Query theft incidents within a specified distance from a point.
@@ -655,117 +539,76 @@ class TheftDataPersistence:
             center_lat (float): Center point latitude.
             center_lon (float): Center point longitude.
             radius_km (float): Search radius in kilometers.
-            table_name (str): Name of the table to query.
+            table_name (Optional[str]): Name of the table to query.
 
         Returns:
             gpd.GeoDataFrame: Theft incidents within the specified distance.
         """
-        if self.connection is None:
-            raise ValueError(DB_CONNECTION_ERROR)
+        table_name = table_name or self.table_name
 
-        # Use bounding box approach since we're storing WKT as TEXT
-        return self._query_by_bbox(center_lat, center_lon, radius_km, table_name)
+        return self.db_persistence.query_by_distance(
+            center_lat=center_lat,
+            center_lon=center_lon,
+            radius_km=radius_km,
+            table_name=table_name,
+            lat_column="incident_lat",
+            lon_column="incident_lon",
+            geometry_column="geometry",
+            geometry_wkt_column="geometry_wkt",
+        )
 
-    def _query_by_bbox(
-        self, center_lat: float, center_lon: float, radius_km: float, table_name: str
-    ) -> gpd.GeoDataFrame:
+    def get_statistics(self, table_name: Optional[str] = None) -> Dict[str, Any]:
         """
-        Fallback method to query by bounding box.
+        Get database statistics for theft data.
 
         Args:
-            center_lat (float): Center point latitude.
-            center_lon (float): Center point longitude.
-            radius_km (float): Search radius in kilometers.
-            table_name (str): Name of the table to query.
-
-        Returns:
-            gpd.GeoDataFrame: Theft incidents within the bounding box.
-        """
-        # Rough conversion: 1 degree ≈ 111 km
-        degree_offset = radius_km / 111.0
-
-        min_lat = center_lat - degree_offset
-        max_lat = center_lat + degree_offset
-        min_lon = center_lon - degree_offset
-        max_lon = center_lon + degree_offset
-
-        query_sql = f"""
-        SELECT * FROM {table_name}
-        WHERE incident_lat BETWEEN {min_lat} AND {max_lat}
-        AND incident_lon BETWEEN {min_lon} AND {max_lon}
-        """
-
-        df = self.connection.execute(query_sql).df()
-
-        if len(df) == 0:
-            return gpd.GeoDataFrame()
-
-        from shapely import wkt
-
-        # Create geometry from WKT strings
-        geometries = []
-        for wkt_str in df["incident_geometry"]:
-            try:
-                if wkt_str and str(wkt_str) not in ["None", "nan", "null"]:
-                    geometries.append(wkt.loads(str(wkt_str)))
-                else:
-                    geometries.append(None)
-            except Exception:
-                geometries.append(None)
-
-        df["geometry"] = geometries
-        gdf = gpd.GeoDataFrame(df, geometry="geometry", crs=WGS84_CRS)
-
-        return gdf
-
-    def get_statistics(self, table_name: str = "theft_incidents") -> Dict[str, Any]:
-        """
-        Get database statistics.
-
-        Args:
-            table_name (str): Name of the table to analyze.
+            table_name (Optional[str]): Name of the table to analyze.
 
         Returns:
             Dict[str, Any]: Database statistics.
         """
-        if self.connection is None:
-            raise ValueError(DB_CONNECTION_ERROR)
+        table_name = table_name or self.table_name
 
+        # Get basic statistics from shared layer
+        basic_stats = self.db_persistence.get_statistics(
+            table_name, columns=["vehicle_make", "vehicle_type", "recovery_status"]
+        )
+
+        # Add theft-specific statistics
         try:
-            stats_sql = f"""
+            custom_stats_sql = f"""
             SELECT 
-                COUNT(*) as total_records,
-                MIN(incident_date) as earliest_incident,
-                MAX(incident_date) as latest_incident,
                 AVG(vehicle_value) as avg_vehicle_value,
                 SUM(vehicle_value) as total_value_stolen,
+                MIN(incident_date) as earliest_incident,
+                MAX(incident_date) as latest_incident,
                 COUNT(DISTINCT vehicle_make) as unique_makes,
                 COUNT(DISTINCT vehicle_type) as unique_types
             FROM {table_name}
             """
 
-            result = self.connection.execute(stats_sql).fetchone()
-
-            stats = {
-                "total_records": result[0],
-                "earliest_incident": result[1],
-                "latest_incident": result[2],
-                "avg_vehicle_value": result[3],
-                "total_value_stolen": result[4],
-                "unique_makes": result[5],
-                "unique_types": result[6],
-            }
-
-            return stats
+            result = self.db_persistence.execute_query(custom_stats_sql)
+            if len(result) > 0:
+                row = result.iloc[0]
+                basic_stats.update(
+                    {
+                        "avg_vehicle_value": row["avg_vehicle_value"],
+                        "total_value_stolen": row["total_value_stolen"],
+                        "earliest_incident": row["earliest_incident"],
+                        "latest_incident": row["latest_incident"],
+                        "unique_makes": row["unique_makes"],
+                        "unique_types": row["unique_types"],
+                    }
+                )
 
         except Exception as e:
-            raise ValueError(f"Error getting statistics: {str(e)}")
+            warnings.warn(f"Could not get extended statistics: {str(e)}")
+
+        return basic_stats
 
     def close(self):
         """Close the database connection."""
-        if self.connection:
-            self.connection.close()
-            self.connection = None
+        self.db_persistence.close()
 
     def __enter__(self):
         """Context manager entry."""
