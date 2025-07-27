@@ -7,12 +7,13 @@ different data classes (TheftData, SuspectData, etc.) for database operations.
 
 import warnings
 from pathlib import Path
-from typing import Optional, Union, Dict, Any, List
+from typing import Any, Dict, List, Optional, Union
+
 import duckdb
-import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Point
+import pandas as pd
 from shapely import wkt
+from shapely.geometry import Point
 
 from .gis_mapper import WGS84_CRS
 

@@ -14,11 +14,11 @@ import geopandas as gpd
 import pandas as pd
 import pytest
 
+from auto_thievia.duckdb_persistence import DB_CONNECTION_ERROR, MEMORY_DB
 from auto_thievia.theft_data import (
     TheftData,
     TheftDataPersistence,
 )
-from auto_thievia.duckdb_persistence import MEMORY_DB, DB_CONNECTION_ERROR
 
 
 class TestTheftData:

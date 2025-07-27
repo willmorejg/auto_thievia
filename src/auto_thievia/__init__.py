@@ -1,25 +1,27 @@
 """
-auto_thievia - A comprehensive GIS toolkit for analyzing auto theft patterns and potential chop shop locations.
+auto_thievia package: Auto theft investigation and analysis tools.
 
-This package provides tools for mapping, analyzing, and visualizing auto theft data
-with a focus on geographic patterns and spatial relationships.
+This package provides tools for analyzing auto theft data, suspect information,
+recovery data, GIS mapping, database persistence, and machine learning predictions.
 """
 
-__version__ = "0.1.0"
-
-from .gis_mapper import GISMapper
-from .theft_data import TheftData, TheftDataPersistence
-from .suspect_data import SuspectData, SuspectDataPersistence
-from .recovery_data import RecoveryData, RecoveryDataPersistence
 from .duckdb_persistence import DuckDbPersistence
+from .gis_mapper import GISMapper
+from .learning_models import LearningClass
+from .recovery_data import RecoveryData, RecoveryDataPersistence
+from .suspect_data import SuspectData, SuspectDataPersistence
+from .theft_data import TheftData, TheftDataPersistence
 
 __all__ = [
-    "GISMapper",
     "TheftData",
     "TheftDataPersistence",
     "SuspectData",
     "SuspectDataPersistence",
     "RecoveryData",
     "RecoveryDataPersistence",
+    "GISMapper",
     "DuckDbPersistence",
+    "LearningClass",
 ]
+
+__version__ = "0.1.0"

@@ -8,16 +8,14 @@ geopandas dataframes for spatial analysis of suspect patterns.
 
 import warnings
 from pathlib import Path
-from typing import Optional, Union, Dict, Any, List
-from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
 
-import pandas as pd
 import geopandas as gpd
+import pandas as pd
 from shapely.geometry import Point
 
+from .duckdb_persistence import MEMORY_DB, DuckDbPersistence
 from .gis_mapper import WGS84_CRS
-from .duckdb_persistence import DuckDbPersistence, MEMORY_DB
-
 
 # Constants
 NO_DATA_ERROR_MSG = "No suspect data loaded. Import data first."

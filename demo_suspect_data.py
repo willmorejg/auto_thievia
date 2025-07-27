@@ -9,17 +9,18 @@ This script demonstrates how to use the SuspectData class to:
 5. Generate visualizations with GIS mapping
 """
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 # Add src to path for imports
 project_root = Path(__file__).parent
 src_path = project_root / "src"
 sys.path.insert(0, str(src_path))
 
-from auto_thievia.suspect_data import SuspectData, SuspectDataPersistence
-from auto_thievia.gis_mapper import GISMapper
 import matplotlib.pyplot as plt
+
+from auto_thievia.gis_mapper import GISMapper
+from auto_thievia.suspect_data import SuspectData, SuspectDataPersistence
 
 
 def main():

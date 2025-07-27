@@ -16,7 +16,7 @@ from pathlib import Path
 # Add the src directory to the path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from auto_thievia import TheftData, TheftDataPersistence, GISMapper
+from auto_thievia import GISMapper, TheftData, TheftDataPersistence
 
 
 def main():
