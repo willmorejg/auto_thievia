@@ -1,0 +1,39 @@
+# Docker Compose for Auto Thievia Web Interface
+version: "3.8"
+
+services:
+  # API Backend
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/output:/app/data/output
+    environment:
+      - PYTHONPATH=/app/src
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Frontend (Optional - can be served separately)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - API_BASE_URL=http://localhost:8000
+      - NUXT_HOST=0.0.0.0
+      - NUXT_PORT=3000
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  output_data:
+    driver: local

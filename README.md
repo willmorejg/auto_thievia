@@ -16,7 +16,7 @@
 
 # Auto Thievia 🚗🗺️
 
-A Python package using GIS to determine auto theft patterns and identify potential chop shop locations.
+A comprehensive Python package using GIS to analyze auto theft patterns, predict criminal activities, and identify potential chop shop locations. Features a modern web interface with REST API endpoints and machine learning capabilities.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
@@ -24,16 +24,38 @@ A Python package using GIS to determine auto theft patterns and identify potenti
 
 ## 🎯 Overview
 
-Auto Thievia is a specialized GIS analysis tool designed to help law enforcement and security professionals analyze auto theft patterns in urban areas. The package provides sophisticated mapping capabilities, spatial analysis, and predictive modeling to identify high-risk areas and potential illegal operations.
+Auto Thievia is a specialized GIS analysis tool designed to help law enforcement and security professionals analyze auto theft patterns in urban areas. The package provides sophisticated mapping capabilities, spatial analysis, predictive modeling, and a modern web interface for comprehensive investigation support.
 
 ### Key Features
 
 - 🗺️ **GIS Mapping**: Interactive and static map generation using Folium and Matplotlib
 - 📍 **Spatial Analysis**: Point pattern analysis for theft incident clustering
 - 🔍 **Pattern Recognition**: Identify theft hotspots and temporal patterns
+- 🤖 **Machine Learning**: Self-supervised learning for predicting criminal activities
 - 📊 **Data Visualization**: Comprehensive plotting and visualization tools
 - 💾 **Multiple Formats**: Support for Shapefiles, GeoJSON, and other GIS formats
-- 🌐 **Web Integration**: Interactive maps with popup information
+- 🌐 **Web Interface**: FastAPI REST endpoints with NuxtJS frontend
+- 🔬 **Advanced Analytics**: DBSCAN clustering, anomaly detection, and risk assessment
+
+## 🏗️ Architecture
+
+### Backend Components
+- **FastAPI REST API** (`src/auto_thievia/api.py`) - Interactive map generation and analysis endpoints
+- **GIS Mapper** (`src/auto_thievia/gis_mapper.py`) - Core mapping and visualization
+- **Machine Learning** (`src/auto_thievia/learning_models.py`) - Predictive modeling and analytics
+- **Data Management** - Theft, suspect, and recovery data processors
+- **Database Integration** - DuckDB for high-performance spatial queries
+
+### Frontend Components (Optional)
+- **Vue 3 + NuxtJS** framework for modern web interface
+- **Tailwind CSS** for responsive design
+- **Interactive Dashboard** with real-time API integration
+- **Map Gallery** and generation controls
+
+### Development Tools
+- **Docker Configuration** for deployment
+- **VS Code Tasks** for development workflow
+- **Comprehensive Documentation** and examples
 
 ## 🚀 Quick Start
 
@@ -44,10 +66,303 @@ Auto Thievia is a specialized GIS analysis tool designed to help law enforcement
 git clone https://github.com/willmorejg/auto_thievia.git
 cd auto_thievia
 
-# Install in development mode
-pip install -e .
+# Create and activate virtual environment
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 
-# Or install with optional dependencies
+# Install in development mode with all dependencies
+pip install -e ".[all]"
+
+# Or install with specific dependency groups
+pip install -e ".[dev,test,gis,ml,web]"
+```
+
+### Start the API Server
+
+```bash
+# Start FastAPI server
+python api_server.py
+```
+
+The API will be available at:
+- **Main API**: http://localhost:8000
+- **Interactive Docs**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+### Optional: Start the Frontend
+
+```bash
+# Install Node.js dependencies
+cd frontend
+npm install
+
+# Start development server
+npm run dev  # Runs on http://localhost:3000
+```
+
+## 📡 REST API Endpoints
+
+### Map Generation
+- `POST /maps/create` - Create custom interactive map from coordinates
+- `GET /maps/theft` - Generate theft analysis map with hotspots
+- `GET /maps/suspects` - Generate suspect risk analysis map  
+- `GET /maps/recovery` - Generate vehicle recovery analysis map
+- `GET /maps/view/{map_id}` - View generated map in browser
+- `GET /maps/list` - List all available maps
+
+### Analysis Endpoints
+- `GET /analysis/theft` - Perform theft pattern analysis with filtering
+- `GET /analysis/suspects` - Analyze suspect risk and activity patterns
+
+### Utility Endpoints
+- `GET /health` - System health check and service status
+- `GET /` - API documentation homepage
+
+## 🗺️ Map Types and Analysis
+
+### Theft Analysis Maps
+- **Hotspot Detection**: DBSCAN clustering algorithms for theft concentration areas
+- **Temporal Analysis**: Time-based pattern recognition and visualization
+- **Vehicle Filtering**: Type, make, value, and theft method categorization
+- **Interactive Features**: Detailed popups with incident information
+- **Risk Prediction**: Machine learning-based risk area identification
+
+### Suspect Analysis Maps  
+- **Risk Assessment**: Color-coded visualization (Low/Medium/High/Critical)
+- **Location Mapping**: Address and arrest location visualization
+- **Activity Patterns**: Temporal and spatial behavior analysis
+- **Filtering Options**: Risk levels, time periods, and activity types
+- **Predictive Modeling**: Suspect activity prediction using clustering
+
+### Recovery Analysis Maps
+- **Recovery Locations**: Vehicle recovery point mapping
+- **Condition Analysis**: Vehicle condition scoring and visualization  
+- **Criminal Correlation**: Relationship analysis with known criminal locations
+- **Time-based Filtering**: Historical recovery pattern analysis
+- **Chop Shop Detection**: Proximity analysis for illegal operations
+
+## 🤖 Machine Learning Capabilities
+
+### Self-Supervised Learning Models
+
+#### Theft Location Prediction
+- **DBSCAN Clustering**: Automatic hotspot identification
+- **K-means Analysis**: General spatial pattern discovery
+- **Risk Grid Prediction**: Geographic area risk assessment
+- **Feature Engineering**: Spatial, temporal, and vehicle characteristics
+
+#### Suspect Activity Prediction
+- **Activity Clustering**: Behavioral pattern identification
+- **Area Prediction**: Potential suspect activity zones
+- **Risk Scoring**: Proximity-based criminal activity assessment
+- **Demographic Integration**: Age, history, and association analysis
+
+#### Criminal Activity Detection
+- **Anomaly Detection**: Isolation Forest for unusual patterns
+- **Random Forest Models**: Criminal activity likelihood prediction
+- **Proximity Analysis**: Distance-based risk calculation
+- **Self-Supervised Labels**: Automatic training data generation
+
+### Model Features
+- **Automated Training**: Hyperparameter optimization and model selection
+- **Persistence**: Save and load trained models for reuse
+- **Real-time Prediction**: Live risk assessment for new data
+- **Visualization Integration**: Seamless GIS mapper integration
+
+## 🧪 Testing Framework
+
+### Comprehensive Test Suite
+
+#### Python Unit Tests
+```bash
+# Run all Python tests
+python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest tests/ --cov=src/auto_thievia --cov-report=html
+
+# Run specific test modules
+python -m pytest tests/test_gis_mapper.py -v
+python -m pytest tests/test_learning_models.py -v
+```
+
+### Test Coverage Areas
+- ✅ **Core GIS Functionality**: Mapping, visualization, spatial analysis
+- ✅ **Machine Learning Models**: Training, prediction, persistence
+- ✅ **Data Processing**: Theft, suspect, and recovery data handling
+- ✅ **Integration Tests**: End-to-end workflow validation
+- ✅ **Performance Tests**: Large dataset handling and concurrency
+
+## 🎯 Usage Examples
+
+### Generate Theft Analysis Map
+```python
+from auto_thievia import GISMapper, TheftData, LearningClass
+
+# Initialize components
+mapper = GISMapper()
+theft_data = TheftData()
+ml_models = LearningClass()
+
+# Generate sample data
+data = theft_data.generate_sample_data(center_lat=40.7357, center_lon=-74.1723)
+
+# Perform clustering analysis
+clusters = ml_models.theft_hotspot_detection(data)
+
+# Create interactive map
+map_obj = mapper.create_interactive_map(
+    coordinates=data[['longitude', 'latitude']].values,
+    popup_columns=['incident_id', 'vehicle_type', 'date'],
+    title="NYC Auto Theft Hotspots"
+)
+```
+
+### REST API Usage
+```bash
+# Generate theft analysis map
+curl "http://localhost:8000/maps/theft?center_lat=40.7357&center_lon=-74.1723&zoom_start=12"
+
+# Create custom map with coordinates
+curl -X POST "http://localhost:8000/maps/create" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "coordinates": [[-74.0060, 40.7128], [-73.9857, 40.7484]],
+    "title": "Custom Investigation Map"
+  }'
+
+# Perform theft pattern analysis
+curl "http://localhost:8000/analysis/theft?start_date=2023-01-01&end_date=2023-12-31"
+```
+
+### Machine Learning Predictions
+```python
+# Train and use criminal activity prediction model
+ml_models = LearningClass()
+
+# Train model on recovery data
+recovery_data = RecoveryData().generate_sample_data()
+model = ml_models.criminal_activity_prediction(recovery_data)
+
+# Predict criminal activity for new locations
+new_locations = [[40.7128, -74.0060], [40.7589, -73.9851]]
+predictions = ml_models.predict_criminal_activity_areas(new_locations)
+```
+
+## 🛠️ Development Setup
+
+### VS Code Configuration
+
+The project includes comprehensive VS Code configuration for optimal development:
+
+- **Python Environment**: Automatic virtual environment detection
+- **Test Discovery**: Integrated pytest test running
+- **Code Formatting**: Black, isort, and flake8 integration
+- **Debugging**: Pre-configured launch configurations
+- **Tasks**: Common development tasks (test, format, lint, type-check)
+
+### Development Tasks
+```bash
+# Format code
+python -m black src/ tests/
+
+# Sort imports
+python -m isort src/ tests/
+
+# Lint code
+python -m flake8 src/ tests/
+
+# Type checking
+python -m mypy src/
+
+# Clean build artifacts
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+```
+
+### Docker Deployment
+```bash
+# Build container
+docker build -t auto-thievia .
+
+# Run with docker-compose
+docker-compose up -d
+```
+
+## 📊 Dependencies and Requirements
+
+### Core Dependencies
+- **GIS**: geopandas, folium, shapely, contextily, pyproj
+- **Data**: pandas, numpy, duckdb, geopy
+- **ML**: scikit-learn, joblib, networkx
+- **Web**: fastapi, uvicorn, pydantic, requests
+- **Visualization**: matplotlib, plotly, seaborn, pillow
+
+### Optional Dependencies
+- **Advanced GIS**: rasterio, osmnx, rtree
+- **ML Extensions**: xgboost, lightgbm, catboost
+- **Development**: pytest, black, mypy, sphinx
+- **Testing**: coverage, pytest-mock
+
+## 📁 Project Structure
+
+```
+auto_thievia/
+├── src/auto_thievia/           # Core package
+│   ├── __init__.py
+│   ├── api.py                  # FastAPI REST endpoints
+│   ├── gis_mapper.py          # GIS mapping and visualization
+│   ├── learning_models.py     # Machine learning models
+│   ├── theft_data.py          # Theft data processing
+│   ├── suspect_data.py        # Suspect data management
+│   ├── recovery_data.py       # Recovery data analysis
+│   └── duckdb_persistence.py  # Database integration
+├── tests/                      # Test suites
+│   ├── test_*.py              # Python unit tests
+│   └── data/                  # Test data and outputs
+├── frontend/                   # NuxtJS web interface (optional)
+├── data/                      # Sample data and outputs
+├── .vscode/                   # VS Code configuration
+├── api_server.py              # API server launcher
+├── docker-compose.yml         # Docker deployment
+└── pyproject.toml            # Project configuration
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Install development dependencies (`pip install -e ".[dev,test]"`)
+4. Run tests to ensure everything works (`python -m pytest tests/`)
+5. Make your changes and add tests
+6. Run the test suite (`python -m pytest`)
+7. Format and lint your code (`python -m black src/ tests/`)
+8. Commit your changes (`git commit -m 'Add amazing feature'`)
+9. Push to the branch (`git push origin feature/amazing-feature`)
+10. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+- **Documentation**: Check the `/docs` directory for detailed guides
+- **API Documentation**: Visit http://localhost:8000/docs when server is running
+- **Issues**: Report bugs and feature requests on GitHub
+- **Tests**: Run `python -m pytest` to validate installation
+
+## 🚀 Roadmap
+
+- [ ] Enhanced machine learning models with deep learning integration
+- [ ] Real-time data streaming and live map updates
+- [ ] Mobile application for field investigation support
+- [ ] Advanced geofencing and alert systems
+- [ ] Integration with law enforcement databases
+- [ ] Predictive policing optimization algorithms
+
+---
+
+**Auto Thievia** - Empowering law enforcement with advanced GIS analytics and machine learning for auto theft investigation and prevention.
 pip install -e ".[gis,ml,dev]"
 ```
 
